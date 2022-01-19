@@ -1,0 +1,61 @@
+---
+versions:
+  openvswitch: 2.12.2
+
+kubernetes_dependencies:
+- kubectl
+- kubeadm
+- kubelet
+
+docker_dependencies:
+- docker-ce
+- docker-ce-cli
+- containerd.io
+
+packages:
+- yum-utils
+- device-mapper-persistent-data
+- lvm2
+
+ovs_dependencies:
+- net-tools
+- wget
+- setuptool
+- perl
+- python3
+- python-sphinx
+- gcc
+- make
+- python-devel
+- openssl-devel
+- graphviz
+- kernel-debug-devel
+- autoconf
+- automake
+- rpm-build
+- redhat-rpm-config
+- libtool
+- libselinux-python
+- python-six
+- checkpolicy
+- selinux-policy-devel
+- unbound-devel
+- epel-release
+- libunwind-devel
+
+# SONA Networking Configuration (Redefine variables whenever needed to update the ono.yml file)
+
+pod_cidr: '20.20.0.0/16'
+cluster_token: "abcdef.1234567890abcdef"
+apiserver_port: "6443"
+
+overlay_type: 'VXLAN'
+seg_id: 100
+ext_intf: 'eth0'          # FIXME: Change accordinf to your virtual networking settings
+ext_gw_ip: '10.0.2.2'       # FIXME: Change accordinf to your virtual networking settings
+srv_cidr: '10.96.0.0/12'
+mtu: 1500
+
+
+
+

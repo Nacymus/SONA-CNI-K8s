@@ -1,0 +1,9 @@
+---
+- name: Pre Kubernetes
+  import_tasks: ./tasks/init.yml
+
+- name: Kubernetes & ONOS installation
+  import_tasks: ./tasks/kube.yml
+
+- name: END
+  ansible.builtin.shell: "echo 'Hourrah!! Completed'"

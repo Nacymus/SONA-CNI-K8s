@@ -1,0 +1,4 @@
+[K8s-nodes]
+K8s-master ansible_hostname=10.168.1.11 ansible_ssh_private_key_file=./.vagrant/machines/K8s-master/virtualbox/private_key ansible_ssh_port=22
+K8s-worker1 ansible_hostname=10.168.2.12 ansible_ssh_private_key_file=./.vagrant/machines/K8s-worker1/virtualbox/private_key ansible_ssh_port=22
+K8s-worker2 ansible_hostname=10.168.3.13 ansible_ssh_private_key_file=./.vagrant/machines/K8s-worker2/virtualbox/private_key ansible_ssh_port=22

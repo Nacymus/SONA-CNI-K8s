@@ -1,0 +1,154 @@
+---
+- name: edit hosts file to escape any DNS resolution between the K8s nodes
+  ansible.builtin.blockinfile:
+    path: /etc/hosts
+    insertafter: EOF
+    block: |
+      {{ hostvars[item].ansible_facts['nodename'] }}   {{ hostvars[item].ansible_eth1.ipv4.address }}
+  with_items: "{{ groups['K8s-nodes'] }}"
+
+- name: Install necessary packages
+  ansible.builtin.yum:
+    update_cache: yes
+    name: "{{ item }}"
+  with_items:
+  - "{{ packages }}"
+
+- name: install appropriate version of kernel-devel
+  ansible.builtin.shell: yum install "kernel-devel-uname-r == $(uname -r)"
+
+- name: Add Docker yum repository
+  shell: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+- name: Install docker repository
+  ansible.builtin.yum:
+    update_cache: yes
+    name: "{{ item }}"
+  with_items: "{{ docker_dependencies }}"
+
+- name: Start and enable docker service
+  ansible.builtin.systemd:
+     name: docker
+     enabled: yes
+     state: started
+
+- name: edit docker systemd unit
+  ansible.builtin.command:
+    cmd: sed -i '/ExecStart=/ s/$/ /' /etc/systemd/system/multi-user.target.wants/docker.service
+
+- name: restart docker service
+  ansible.builtin.systemd:
+    name: docker
+    daemon_reload: yes
+    state: restarted
+
+- name: Ensure SELinux is set to permissive mode
+  ansible.builtin.command:
+    cmd: "{{ item }}"
+  with_items:
+  - setenforce 0
+  - sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+- name: Install necessary packages
+  ansible.builtin.yum:
+    update_cache: yes
+    name: "{{ item }}"
+  with_items:
+  - "{{ ovs_dependencies }}"
+
+- name: Install python3-sphinx
+  shell: yum makecache && yum -y install python3-sphinx
+  when: versions.openvswitch == "2.15.0"
+
+- name: Restart server
+  ansible.builtin.reboot:
+    test_command: "echo '$HOSTNAME is up again'"
+
+- name: Download, build and install ovs from sources ( on node master only)
+  block:
+    - name: Directory to Install OpenVswitch from sources
+      ansible.builtin.file:
+        path: "~/rpmbuild/SOURCES/"
+        state: directory
+        group: root
+        owner: root
+        mode: '0755'
+
+    - name: get the archive from a url
+      ansible.builtin.get_url:
+        dest: "~/rpmbuild/SOURCES/"
+        url: http://openvswitch.org/releases/openvswitch-{{ versions.openvswitch }}.tar.gz
+
+    - name: Unpack the archive file
+      ansible.builtin.unarchive:
+        remote_src: yes
+        src: "~/rpmbuild/SOURCES/openvswitch-{{ versions.openvswitch }}.tar.gz"
+        dest: "~/rpmbuild/SOURCES/"
+
+    - name: Build the rpm packages of ovs from source
+      ansible.builtin.command:
+        chdir: "~/rpmbuild/SOURCES/openvswitch-{{ versions.openvswitch }}"
+        cmd: rpmbuild -bb --without check -D "kversion `uname -r`" {{ item }}
+      with_items:
+      - rhel/openvswitch.spec
+      - rhel/openvswitch-kmod-fedora.spec
+
+    - name: install the rpm package on the Master
+      ansible.builtin.command:
+        cmd: yum localinstall -y ~/rpmbuild/RPMS/x86_64/{{ item }}
+      with_items:
+      - openvswitch-{{ versions.openvswitch }}-1.x86_64.rpm
+      - openvswitch-kmod-{{ versions.openvswitch }}-1.el7.x86_64.rpm
+
+    - name: Fetch the .rpm file on local
+      ansible.builtin.fetch:
+        src: "~/rpmbuild/RPMS/x86_64/{{ item }}"
+        dest: "/tmp/"
+      with_items:
+      - openvswitch-{{ versions.openvswitch }}-1.x86_64.rpm
+      - openvswitch-kmod-{{ versions.openvswitch }}-1.el7.x86_64.rpm
+  when: inventory_hostname == "K8s-master"
+
+- name: Copy and install RPMs in the worker nodes
+  block:
+    - name: Copy the files from managing host to workers
+      ansible.builtin.copy:
+        src: "/tmp/K8s-master/root/rpmbuild/RPMS/x86_64/{{ item }}"
+        dest: "~/rpmbuild/RPMS/x86_64/"
+      with_items:
+      - openvswitch-{{ versions.openvswitch }}-1.x86_64.rpm
+      - openvswitch-kmod-{{ versions.openvswitch }}-1.el7.x86_64.rpm
+
+    - name: Install packages from copied RPM files
+      ansible.builtin.command:
+        cmd: yum localinstall -y ~/rpmbuild/RPMS/x86_64/{{ item }}
+      with_items:
+      - openvswitch-{{ versions.openvswitch }}-1.x86_64.rpm
+      - openvswitch-kmod-{{ versions.openvswitch }}-1.el7.x86_64.rpm
+  when: inventory_hostname != 'K8s-master'
+
+- name: Start and enable openvswitch service
+  ansible.builtin.systemd:
+     name: openvswitch
+     enabled: yes
+     state: started
+
+- name: Add a line to the ovs-ctl script
+  ansible.builtin.command:
+    cmd: sed -i '/set ovsdb-server \"$DB_FILE\"/a \        set \"$@\" --remote=ptcp:6650' /usr/share/openvswitch/scripts/ovs-ctl
+
+- name: restart ovs service
+  ansible.builtin.systemd:
+    name: openvswitch
+    daemon_reload: yes
+    state: restarted
+
+
+
+
+
+
+
+
+
+

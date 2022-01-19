@@ -1,0 +1,8 @@
+---
+- name: SONA-CNI Installation on Kubernetes
+  hosts: K8s-nodes
+  become: true
+  become_user: root
+  roles:
+  - role: ./roles/SONA-on-K8S
+
