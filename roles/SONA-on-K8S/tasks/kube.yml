@@ -45,6 +45,16 @@
   ansible.builtin.command:
     cmd: yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
 
+- name: edit docker systemd unit
+  ansible.builtin.command:
+    cmd: sed -i '/ExecStart=/ s/$/ --exec-opt native.cgroupdriver=systemd/' /etc/systemd/system/multi-user.target.wants/docker.service
+
+- name: restart docker service
+  ansible.builtin.systemd:
+    name: docker
+    daemon_reload: yes
+    state: restarted
+
 - name: Start and enable kubelet kubectl service
   ansible.builtin.systemd:
      name: kubelet

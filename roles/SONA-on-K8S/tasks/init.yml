@@ -32,16 +32,6 @@
      enabled: yes
      state: started
 
-- name: edit docker systemd unit
-  ansible.builtin.command:
-    cmd: sed -i '/ExecStart=/ s/$/ /' /etc/systemd/system/multi-user.target.wants/docker.service
-
-- name: restart docker service
-  ansible.builtin.systemd:
-    name: docker
-    daemon_reload: yes
-    state: restarted
-
 - name: Ensure SELinux is set to permissive mode
   ansible.builtin.command:
     cmd: "{{ item }}"

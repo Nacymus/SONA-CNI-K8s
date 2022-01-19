@@ -20,7 +20,7 @@ First make sure to have these installed on your local machine:
 With all these setup, jus do:
 
 ```
-$ git pull ….
+$ git pull https://github.com/Nacymus/SONA-CNI-K8s
 $ cd SONA-CNI
 $ vagrant up
 ```
