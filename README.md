@@ -13,11 +13,14 @@ First make sure to have these installed on your local machine:
 
 
  Ansible 2.11.4
+
  Vagrant 2.2.14
+
  Python3
+
  VirtualBox
 
-With all these setup, jus do:
+With all these setup, just do:
 
 ```
 $ git pull https://github.com/Nacymus/SONA-CNI-K8s
